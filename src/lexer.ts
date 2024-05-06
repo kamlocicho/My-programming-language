@@ -1,18 +1,23 @@
 export enum TokenType {
-    Null,
     Number,
     Identifier,
     Equals,
+    String,
     OpenParen, 
     CloseParen,
     BinaryOperator,
+    Semicolon,
+
+    // Keywords definition
     Let,
+    Const,
+    
     EOF, // Symbol of end of file. It's not really visible.
 }
 
 const KEYWORDS: Record<string, TokenType> = {
     let: TokenType.Let,
-    null: TokenType.Null
+    const: TokenType.Const,
 }
 
 
@@ -57,6 +62,8 @@ export function tokenize(sourceCode: string): Token[] {
             tokens.push(token(src.shift(), TokenType.BinaryOperator));
         else if (src[0] == '=') 
             tokens.push(token(src.shift(), TokenType.Equals));
+        else if (src[0] == ';') 
+            tokens.push(token(src.shift(), TokenType.Semicolon));
         else {
             // Handle multicharacter tokens
             

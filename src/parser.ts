@@ -1,17 +1,7 @@
-import { NullLiteral } from "./ast.ts";
-import {Stmt, Program, BinaryExpr, Expr, NumericLiteral, Identifier} from './ast.ts'
+import {Stmt, Program, BinaryExpr, Expr, NumericLiteral, Identifier, VarDeclaration} from './ast.ts'
 import {TokenType, tokenize, Token} from './lexer.ts'
 
-// Order of presidence
-// AssignmentExpr
-// MemberExpr
-// FunctionCall
-// LogicalExpr
-// Comparison
-// AdditiveExpr
-// MultiplicitaveExpr
-// UnaryExpr
-// PrimaryExpr <- DONE.
+
 export default class Parser {
 
     private tokens: Token[] = [];
@@ -56,7 +46,33 @@ export default class Parser {
     }
 
     private parse_stmt(): Stmt {
-        return this.parse_expr();
+        switch(this.at().type) {
+            case TokenType.Let:
+            case TokenType.Const:
+                return this.parse_val_declaration();
+            default:
+                return this.parse_expr();
+        }
+    }
+
+    private parse_val_declaration(): Stmt {
+        const isConstant = this.eat().type == TokenType.Const;
+        const identifier = this.expect(TokenType.Identifier, "Expected identifier name following let or const keywords.").value;
+
+        if (this.at().type == TokenType.Semicolon) {
+            this.eat(); // Expect semicolon
+            if (isConstant) {
+                throw "Must assign value to a constant variable. No value provided.";
+            }
+
+            return {kind: "VarDeclaration", identifier, constant: false} as VarDeclaration;
+        }
+
+        this.expect(TokenType.Equals, "Expected equals token identifier in variable declaration.")
+        const declaration = {kind: "VarDeclaration", value: this.parse_expr(), constant: isConstant} as VarDeclaration;
+
+        this.expect(TokenType.Semicolon, "Variable declaration statement must end with semicolon.");
+        return declaration;
     }
 
     private parse_expr(): Expr {
@@ -105,10 +121,6 @@ export default class Parser {
         switch(tk) {
             case TokenType.Identifier:
                 return { kind: "Identifier", symbol: this.eat().value } as Identifier;
-            case TokenType.Null: {
-                this.eat();
-                return { kind: "NullLiteral", value: "null"} as NullLiteral
-            }
             case TokenType.Number:
                 return { kind: "NumericLiteral", value: parseFloat(this.eat().value) } as NumericLiteral;
             case TokenType.OpenParen: {
